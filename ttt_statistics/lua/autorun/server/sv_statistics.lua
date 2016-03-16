@@ -23,7 +23,6 @@ local function LoadStatistics( pl, steamid, uniqueid )
 	--pl:SetNWInt( "teammate_killed", pl:GetPData( "teammate_killed", 0 ) )
 	pl:SetNWInt( "traitor_killed", pl:GetPData( "traitor_killed", 0 ) )
 	pl:SetNWInt( "innocent_killed", pl:GetPData( "innocent_killed", 0 ) )
-	pl:SetNWInt( "detective_killed", pl:GetPData( "detective_killed", 0 ) )
 end
 hook.Add( 'PlayerAuthed', 'FWKZT.PlayerAuthedStats.TTT', LoadStatistics )
 
@@ -38,7 +37,6 @@ local function SaveStatistics( pl )
 	--pl:SetPData( "teammate_killed", pl:GetNWInt( "teammate_killed" ) )
 	pl:SetPData( "traitor_killed", pl:GetNWInt( "traitor_killed" ) )
 	pl:SetPData( "innocent_killed", pl:GetNWInt( "innocent_killed" ) )
-	pl:SetPData( "detective_killed", pl:GetNWInt( "detective_killed" ) )
 end
 hook.Add( 'PlayerDisconnected', 'FWKZT.PlayerDisconnectedStats.TTT', SaveStatistics )
 
@@ -48,58 +46,78 @@ local function TTT_TTTEndRound( result )
 		if pl:IsSpec() then continue end
 	
 		if result == WIN_TRAITOR then
-			if pl:IsRole( ROLE_TRAITOR ) then
-				pl:SetNWInt( "traitor_wins", pl:GetNWInt( "traitor_wins" ) + 1 )
-				pl:SetPData( "traitor_wins", pl:GetNWInt( "traitor_wins" ) )
-				--print(pl:Nick().." Has "..pl:GetNWInt( "traitor_wins" ).." Traitor Wins!")
+			if pl:IsPlayer() then
+				if pl:IsRole( ROLE_TRAITOR ) then
+					pl:SetNWInt( "traitor_wins", pl:GetNWInt( "traitor_wins" ) + 1 )
+					pl:SetPData( "traitor_wins", pl:GetNWInt( "traitor_wins" ) )
+					--print(pl:Nick().." Has "..pl:GetNWInt( "traitor_wins" ).." Traitor Wins!")
+				end
 			end
 		elseif result == WIN_INNOCENT then
-			if ( pl:IsRole( ROLE_INNOCENT ) || pl:IsRole( ROLE_DETECTIVE ) ) then
-				pl:SetNWInt( "innocent_wins", pl:GetNWInt( "innocent_wins" ) + 1 )
-				pl:SetPData( "innocent_wins", pl:GetNWInt( "innocent_wins" ) )
-				--print(pl:Nick().." Has "..pl:GetNWInt( "innocent_wins" ).." Innocent Wins!")
+			if pl:IsPlayer() then
+				if ( pl:IsRole( ROLE_INNOCENT ) || pl:IsRole( ROLE_DETECTIVE ) ) then
+					pl:SetNWInt( "innocent_wins", pl:GetNWInt( "innocent_wins" ) + 1 )
+					pl:SetPData( "innocent_wins", pl:GetNWInt( "innocent_wins" ) )
+					--print(pl:Nick().." Has "..pl:GetNWInt( "innocent_wins" ).." Innocent Wins!")
+				end	
 			end	
 		end
 	end	
 end
 
-local function TTT_DoPlayerDeath( pl, attacker, dmginfo)
-	if !( IsValid(pl) && IsValid(attacker) ) then return end
+local function TTT_DoPlayerDeath( pl, attacker, dmginfo )
+	if !( IsValid( pl ) && IsValid( attacker ) ) then return end
+	
+	if pl == attacker then return end
 
+	if attacker:GetRole() == pl:GetRole() then
+		--for k, ply in pairs( player.GetAll() ) do
+			--if !ply:IsAdmin() || !ply:IsSuperAdmin() then return end
+			--ply:ChatPrint( "[Cringe Detector] "..attacker:Nick().." has RDM'd "..pl:Nick() )
+		--end
+		return
+	end	
+	
 	local decap = pl:LastHitGroup() == HITGROUP_HEAD
-	if decap then
-		if pl:IsRole( ROLE_TRAITOR ) then
-			attacker:SetNWInt( "traitor_decaps", attacker:GetNWInt( "traitor_decaps" ) + 1 )
-			attacker:SetPData( "traitor_decaps", attacker:GetNWInt( "traitor_decaps" ) )
-			--print(attacker:Nick().." Has "..attacker:GetNWInt( "traitor_decaps" ).." Traitor Decapitations!")
-			pl:SetNWInt( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) + 1 )
-			pl:SetPData( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) )
-			--print(pl:Nick().." Has "..pl:GetNWInt( "traitor_deaths" ).." Traitor Deaths!")
-		end	
-	else
-		if pl:IsRole( ROLE_TRAITOR ) then
-			attacker:SetNWInt( "traitor_killed", attacker:GetNWInt( "traitor_killed" ) + 1 )
-			attacker:SetPData( "traitor_killed", attacker:GetNWInt( "traitor_killed" ) )
-			--print(attacker:Nick().." Has "..attacker:GetNWInt( "traitor_killed" ).." Traitor Kills!")
-			pl:SetNWInt( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) + 1 )
-			pl:SetPData( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) )
-			--print(pl:Nick().." Has "..pl:GetNWInt( "traitor_deaths" ).." Traitor Deaths!")
-		elseif pl:IsRole( ROLE_DETECTIVE ) then
-			attacker:SetNWInt( "detective_killed", attacker:GetNWInt( "detective_killed" ) + 1 )
-            attacker:SetPData( "detective_killed", attacker:GetNWInt( "detective_killed" ) )
-			--print(attacker:Nick().." Has "..attacker:GetNWInt( "detective_killed" ).." Detective Kills!")
-			pl:SetNWInt( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) + 1 )
-            pl:SetPData( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) )
-			--print(pl:Nick().." Has "..pl:GetNWInt( "innocent_deaths" ).." Innocent Deaths!")
-		elseif pl:IsRole( ROLE_INNOCENT ) then	
-			attacker:SetNWInt( "innocent_killed", attacker:GetNWInt( "innocent_killed" ) + 1 )
-            attacker:SetPData( "innocent_killed", attacker:GetNWInt( "innocent_killed" ) )
-            --print(attacker:Nick().." Has "..attacker:GetNWInt( "innocent_killed" ).." Innocent Kills!")
-            pl:SetNWInt( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) + 1 )
-			pl:SetPData( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) )
-            --print(pl:Nick().." Has "..pl:GetNWInt( "innocent_deaths" ).." Innocent Deaths!")
-		end	
-	end
+	if attacker:IsPlayer() and pl:IsPlayer() then
+		if decap then
+			if pl:IsRole( ROLE_TRAITOR ) then
+				pl:SetNWInt( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) + 1 )
+				pl:SetPData( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) )
+				--print(pl:Nick().." Has "..pl:GetNWInt( "traitor_deaths" ).." Traitor Deaths!")
+				
+				attacker:SetNWInt( "traitor_decaps", attacker:GetNWInt( "traitor_decaps" ) + 1 )
+				attacker:SetPData( "traitor_decaps", attacker:GetNWInt( "traitor_decaps" ) )
+				--print(attacker:Nick().." Has "..attacker:GetNWInt( "traitor_decaps" ).." Traitor Decapitations!")
+			end	
+		else
+			if pl:IsRole( ROLE_TRAITOR ) then
+				attacker:SetNWInt( "traitor_killed", attacker:GetNWInt( "traitor_killed" ) + 1 )
+				attacker:SetPData( "traitor_killed", attacker:GetNWInt( "traitor_killed" ) )
+				--print(attacker:Nick().." Has "..attacker:GetNWInt( "traitor_killed" ).." Traitor Kills!")
+				
+				pl:SetNWInt( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) + 1 )
+				pl:SetPData( "traitor_deaths", pl:GetNWInt( "traitor_deaths" ) )
+				--print(pl:Nick().." Has "..pl:GetNWInt( "traitor_deaths" ).." Traitor Deaths!")
+			elseif pl:IsRole( ROLE_DETECTIVE ) then
+				attacker:SetNWInt( "detective_killed", attacker:GetNWInt( "detective_killed" ) + 1 )
+				attacker:SetPData( "detective_killed", attacker:GetNWInt( "detective_killed" ) )
+				--print(attacker:Nick().." Has "..attacker:GetNWInt( "detective_killed" ).." Detective Kills!")
+				
+				pl:SetNWInt( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) + 1 )
+				pl:SetPData( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) )
+				--print(pl:Nick().." Has "..pl:GetNWInt( "innocent_deaths" ).." Innocent Deaths!")
+			elseif pl:IsRole( ROLE_INNOCENT ) then	
+				attacker:SetNWInt( "innocent_killed", attacker:GetNWInt( "innocent_killed" ) + 1 )
+				attacker:SetPData( "innocent_killed", attacker:GetNWInt( "innocent_killed" ) )
+				--print(attacker:Nick().." Has "..attacker:GetNWInt( "innocent_killed" ).." Innocent Kills!")
+				
+				pl:SetNWInt( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) + 1 )
+				pl:SetPData( "innocent_deaths", pl:GetNWInt( "innocent_deaths" ) )
+				--print(pl:Nick().." Has "..pl:GetNWInt( "innocent_deaths" ).." Innocent Deaths!")
+			end	
+		end
+	end	
 end
 
 local function TTT_Command( pl, text, teamchat )
